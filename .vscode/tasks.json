@@ -1,0 +1,27 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "dotnet",
+			"task": "watch WebApplication1",
+			"file": "/Users/nishantkumpakha/Documents/dbcontext/WebApplication1/WebApplication1.csproj",
+			"problemMatcher": [],
+			"label": "dotnet: watch WebApplication1"
+		},
+		{
+			"type": "dotnet",
+			"task": "build /Users/nishantkumpakha/Documents/dbcontext/WebApplication1/WebApplication1.csproj",
+			"file": "/Users/nishantkumpakha/Documents/dbcontext/WebApplication1/WebApplication1.csproj",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "dotnet: build /Users/nishantkumpakha/Documents/dbcontext/WebApplication1/WebApplication1.csproj"
+		},
+		{
+			"type": "dotnet",
+			"task": "build",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "dotnet: build"
+		}
+	]
+}

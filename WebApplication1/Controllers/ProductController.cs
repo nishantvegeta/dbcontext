@@ -1,0 +1,165 @@
+using System;
+using System.Linq;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using WebApplication1.Data;
+using WebApplication1.Models;
+using WebApplication1.ViewModels.ProductVms;
+
+namespace WebApplication1.Controllers
+{
+    public class ProductController : Controller
+    {
+        private readonly FirstRunDbContext dbContext;
+
+        public ProductController(FirstRunDbContext dbContext)
+        {
+            this.dbContext = dbContext;
+        }
+
+        public async Task<IActionResult> Filter(string name)
+        {
+            var filteredproducts = await dbContext.Products.
+                Include(x => x.Category).
+                Where(x => x.Name.Contains(name)).
+                OrderBy(x => x.Name).
+                ToListAsync();
+            
+            return View(filteredproducts);
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            var products = await dbContext.Products.
+                Include(x => x.Category).
+                OrderBy(x => x.Name).
+                ToListAsync();
+
+            return View(products);
+        }
+
+        public async Task<IActionResult> Create()
+        {
+            var productCategories = await dbContext.ProductCategories.
+                OrderBy(x => x.Name).
+                ToListAsync();
+
+            var vm = new CreateProductVm();
+            vm.ProductCategories = productCategories;
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create(CreateProductVm vm)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return View(vm);
+                }
+
+                var productCategory = await dbContext.ProductCategories.
+                    Where(x => x.Id == vm.ProductCategoryId).FirstOrDefaultAsync();
+
+                if (productCategory == null)
+                {
+                    throw new Exception("Product category not found");
+                }
+
+                var product = new Product();
+                product.Name = vm.Name;
+                product.Category = productCategory;
+                product.Description = vm.Description;
+                product.Price = 0;
+                product.IsAvailable = true;
+
+                dbContext.Products.Add(product);
+                await dbContext.SaveChangesAsync();
+
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        public async Task<IActionResult> Update(int id)
+        {
+            try
+            {
+                var productCategories = await dbContext.ProductCategories.
+                    OrderBy(x => x.Name).
+                    ToListAsync();
+                
+                var product = await dbContext.Products.
+                    Where(x => x.Id == id).FirstOrDefaultAsync();
+
+                if (product == null)
+                {
+                    throw new Exception("Product not found");
+                }
+
+                var vm = new UpdateProductVm();
+                vm.ProductCategories = productCategories;
+
+                vm.Name = product.Name;
+                vm.ProductCategoryId = product.Category.Id;
+                vm.Description = product.Description;
+
+
+                return View(vm);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Update(int id, CreateProductVm vm)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return View(vm);
+                }
+
+                var productCategory = await dbContext.ProductCategories.
+                    Where(x => x.Id == vm.ProductCategoryId).FirstOrDefaultAsync();
+
+                if (productCategory == null)
+                {
+                    throw new Exception("Product category not found");
+                }
+
+                var product = await dbContext.Products.
+                    Where(x => x.Id == id).FirstOrDefaultAsync();
+                
+                if (product == null)
+                {
+                    throw new Exception("Product not found");
+                }
+
+                product.Name = vm.Name;
+                product.Category = productCategory;
+                product.Description = vm.Description;
+                product.Price = 0;
+                product.IsAvailable = true;
+
+                dbContext.Products.Update(product);
+                await dbContext.SaveChangesAsync();
+
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+    }
+}
