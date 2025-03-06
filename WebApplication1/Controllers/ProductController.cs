@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
 using WebApplication1.Models;
 using WebApplication1.ViewModels.ProductVms;
+using System.Transactions;
 
 namespace WebApplication1.Controllers
 {
@@ -54,36 +55,41 @@ namespace WebApplication1.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(CreateProductVm vm)
         {
-            try
+            using(var txn = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
             {
-                if (!ModelState.IsValid)
+                try
                 {
-                    return View(vm);
+                    if (!ModelState.IsValid)
+                    {
+                        return View(vm);
+                    }
+
+                    var productCategory = await dbContext.ProductCategories.
+                        Where(x => x.Id == vm.ProductCategoryId).FirstOrDefaultAsync();
+
+                    if (productCategory == null)
+                    {
+                        throw new Exception("Product category not found");
+                    }
+
+                    var product = new Product();
+                    product.Name = vm.Name;
+                    product.Category = productCategory;
+                    product.Description = vm.Description;
+                    product.Price = 0;
+                    product.IsAvailable = true;
+
+                    dbContext.Products.Add(product);
+                    await dbContext.SaveChangesAsync();
+
+                    txn.Complete();
+
+                    return RedirectToAction("Index");
                 }
-
-                var productCategory = await dbContext.ProductCategories.
-                    Where(x => x.Id == vm.ProductCategoryId).FirstOrDefaultAsync();
-
-                if (productCategory == null)
+                catch (Exception ex)
                 {
-                    throw new Exception("Product category not found");
+                    return BadRequest(ex.Message);
                 }
-
-                var product = new Product();
-                product.Name = vm.Name;
-                product.Category = productCategory;
-                product.Description = vm.Description;
-                product.Price = 0;
-                product.IsAvailable = true;
-
-                dbContext.Products.Add(product);
-                await dbContext.SaveChangesAsync();
-
-                return RedirectToAction("Index");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
             }
         }
 
@@ -122,43 +128,48 @@ namespace WebApplication1.Controllers
         [HttpPost]
         public async Task<IActionResult> Update(int id, CreateProductVm vm)
         {
-            try
+            using(var txn = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
             {
-                if (!ModelState.IsValid)
+                try
                 {
-                    return View(vm);
+                    if (!ModelState.IsValid)
+                    {
+                        return View(vm);
+                    }
+
+                    var productCategory = await dbContext.ProductCategories.
+                        Where(x => x.Id == vm.ProductCategoryId).FirstOrDefaultAsync();
+
+                    if (productCategory == null)
+                    {
+                        throw new Exception("Product category not found");
+                    }
+
+                    var product = await dbContext.Products.
+                        Where(x => x.Id == id).FirstOrDefaultAsync();
+                    
+                    if (product == null)
+                    {
+                        throw new Exception("Product not found");
+                    }
+
+                    product.Name = vm.Name;
+                    product.Category = productCategory;
+                    product.Description = vm.Description;
+                    product.Price = 0;
+                    product.IsAvailable = true;
+
+                    dbContext.Products.Update(product);
+                    await dbContext.SaveChangesAsync();
+
+                    txn.Complete();
+
+                    return RedirectToAction("Index");
                 }
-
-                var productCategory = await dbContext.ProductCategories.
-                    Where(x => x.Id == vm.ProductCategoryId).FirstOrDefaultAsync();
-
-                if (productCategory == null)
+                catch (Exception ex)
                 {
-                    throw new Exception("Product category not found");
+                    return BadRequest(ex.Message);
                 }
-
-                var product = await dbContext.Products.
-                    Where(x => x.Id == id).FirstOrDefaultAsync();
-                
-                if (product == null)
-                {
-                    throw new Exception("Product not found");
-                }
-
-                product.Name = vm.Name;
-                product.Category = productCategory;
-                product.Description = vm.Description;
-                product.Price = 0;
-                product.IsAvailable = true;
-
-                dbContext.Products.Update(product);
-                await dbContext.SaveChangesAsync();
-
-                return RedirectToAction("Index");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
             }
         }
     }
