@@ -26,6 +26,11 @@ namespace WebApplication1.Controllers
                 Where(x => x.Name.Contains(name)).
                 OrderBy(x => x.Name).
                 ToListAsync();
+
+            if (filteredproducts.Count == 0)
+            {
+                ViewBag.Message = "No products found.";
+            }
             
             return View(filteredproducts);
         }
@@ -146,21 +151,55 @@ namespace WebApplication1.Controllers
                     }
 
                     var product = await dbContext.Products.
-                        Where(x => x.Id == id).FirstOrDefaultAsync();
+                        Where(x => x.Id == id).ExecuteUpdateAsync(setters => setters.
+                            SetProperty(x => x.Name, vm.Name)
+                            .SetProperty(x => x.CategoryId, vm.ProductCategoryId)
+                            .SetProperty(x => x.Description, vm.Description)
+                            .SetProperty(x => x.Price, 0)
+                            .SetProperty(x => x.IsAvailable, true)
+                        );
                     
                     if (product == null)
                     {
                         throw new Exception("Product not found");
                     }
 
-                    product.Name = vm.Name;
-                    product.Category = productCategory;
-                    product.Description = vm.Description;
-                    product.Price = 0;
-                    product.IsAvailable = true;
+                    // product.Name = vm.Name;
+                    // product.Category = productCategory;
+                    // product.Description = vm.Description;
+                    // product.Price = 0;
+                    // product.IsAvailable = true;
 
-                    dbContext.Products.Update(product);
-                    await dbContext.SaveChangesAsync();
+                    // dbContext.Products.ExecuteUpdate(product);
+                    // await dbContext.SaveChangesAsync();
+
+                    txn.Complete();
+
+                    return RedirectToAction("Index");
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+            }
+        }
+
+        public async Task<IActionResult> Delete(int id)
+        {
+            using(var txn = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+            {
+                try
+                {
+                    var product = await dbContext.Products.
+                        Where(x => x.Id == id).ExecuteDeleteAsync();
+
+                    if (product == null)
+                    {
+                        throw new Exception("Product not found");
+                    }
+
+                    // dbContext.Products.Remove(product);
+                    // await dbContext.SaveChangesAsync();
 
                     txn.Complete();
 
