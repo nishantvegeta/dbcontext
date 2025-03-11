@@ -19,11 +19,11 @@ namespace WebApplication1.Controllers
             this.dbContext = dbContext;
         }
 
-        public async Task<IActionResult> Filter(string name)
+        public async Task<IActionResult> Filter(SearchProductVm vm)
         {
             var filteredproducts = await dbContext.Products.
                 Include(x => x.Category).
-                Where(x => x.Name.Contains(name)).
+                Where(x => x.Name.Contains(vm.Name)).
                 OrderBy(x => x.Name).
                 ToListAsync();
 
@@ -32,7 +32,8 @@ namespace WebApplication1.Controllers
                 ViewBag.Message = "No products found.";
             }
             
-            return View(filteredproducts);
+            vm.Products = filteredproducts;
+            return View(vm);
         }
 
         public async Task<IActionResult> Index()
