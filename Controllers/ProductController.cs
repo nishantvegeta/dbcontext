@@ -36,14 +36,16 @@ namespace WebApplication1.Controllers
             return View(vm);
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(ProductVm vm)
         {
             var products = await dbContext.Products.
                 Include(x => x.Category).
                 OrderBy(x => x.Name).
                 ToListAsync();
+            
+            vm.Products = products;
 
-            return View(products);
+            return View(vm);
         }
 
         public async Task<IActionResult> Create()
