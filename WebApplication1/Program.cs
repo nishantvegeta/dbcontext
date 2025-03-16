@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
+using WebApplication1.Services;
+using WebApplication1.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +11,10 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<FirstRunDbContext>(builder => {
     builder.UseNpgsql("Host=localhost;Database=dotnet;Username=postgres;Password=5744");
     });
+
+//Add service to service container as Scoped
+//When i ask for IProductService, give me object of ProductService
+builder.Services.AddScoped<IProductService, ProductService>();
 
 var app = builder.Build();
 

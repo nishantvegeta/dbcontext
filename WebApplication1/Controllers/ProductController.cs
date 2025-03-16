@@ -1,6 +1,5 @@
 using System;
-using System.Linq;
-using Microsoft.AspNetCore.Http.HttpResults;
+using WebApplication1.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
@@ -13,10 +12,12 @@ namespace WebApplication1.Controllers
     public class ProductController : Controller
     {
         private readonly FirstRunDbContext dbContext;
+        private readonly IProductService productService;
 
-        public ProductController(FirstRunDbContext dbContext)
+        public ProductController(FirstRunDbContext dbContext, IProductService productService)
         {
             this.dbContext = dbContext;
+            this.productService = productService;
         }
 
         public async Task<IActionResult> Filter(SearchProductVm vm)
@@ -31,7 +32,7 @@ namespace WebApplication1.Controllers
             {
                 ViewBag.Message = "No products found.";
             }
-            
+
             vm.Products = filteredproducts;
             return View(vm);
         }
@@ -42,7 +43,7 @@ namespace WebApplication1.Controllers
                 Include(x => x.Category).
                 OrderBy(x => x.Name).
                 ToListAsync();
-            
+
             ProductVm vm = new ProductVm();
             vm.Products = products;
 
@@ -64,41 +65,43 @@ namespace WebApplication1.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(CreateProductVm vm)
         {
-            using(var txn = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+            try
             {
-                try
+                if (!ModelState.IsValid)
                 {
-                    if (!ModelState.IsValid)
-                    {
-                        return View(vm);
-                    }
-
-                    var productCategory = await dbContext.ProductCategories.
-                        Where(x => x.Id == vm.ProductCategoryId).FirstOrDefaultAsync();
-
-                    if (productCategory == null)
-                    {
-                        throw new Exception("Product category not found");
-                    }
-
-                    var product = new Product();
-                    product.Name = vm.Name;
-                    product.Category = productCategory;
-                    product.Description = vm.Description;
-                    product.Price = 0;
-                    product.IsAvailable = true;
-
-                    dbContext.Products.Add(product);
-                    await dbContext.SaveChangesAsync();
-
-                    txn.Complete();
-
-                    return RedirectToAction("Index");
+                    return View(vm);
                 }
-                catch (Exception ex)
+
+                var productCategory = await dbContext.ProductCategories.
+                    Where(x => x.Id == vm.ProductCategoryId).FirstOrDefaultAsync();
+
+                if (productCategory == null)
                 {
-                    return BadRequest(ex.Message);
+                    throw new Exception("Product category not found");
                 }
+
+                // var product = new Product();
+                // product.Name = vm.Name;
+                // product.Category = productCategory;
+                // product.Description = vm.Description;
+                // product.Price = 0;
+                // product.IsAvailable = true;
+                // dbContext.Products.Add(product);
+                // await dbContext.SaveChangesAsync();
+
+                //Mappning vm to Dto
+                var dto = new Dto.ProductDtos.CreateProductDto();
+                dto.Name = vm.Name;
+                dto.ProductCategory = productCategory;
+                dto.Description = vm.Description;
+
+                await productService.Create(dto);
+
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
 
@@ -109,7 +112,7 @@ namespace WebApplication1.Controllers
                 var productCategories = await dbContext.ProductCategories.
                     OrderBy(x => x.Name).
                     ToListAsync();
-                
+
                 var product = await dbContext.Products.
                     Where(x => x.Id == id).FirstOrDefaultAsync();
 
@@ -137,82 +140,71 @@ namespace WebApplication1.Controllers
         [HttpPost]
         public async Task<IActionResult> Update(int id, CreateProductVm vm)
         {
-            using(var txn = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+            try
             {
-                try
+                if (!ModelState.IsValid)
                 {
-                    if (!ModelState.IsValid)
-                    {
-                        return View(vm);
-                    }
-
-                    var productCategory = await dbContext.ProductCategories.
-                        Where(x => x.Id == vm.ProductCategoryId).FirstOrDefaultAsync();
-
-                    if (productCategory == null)
-                    {
-                        throw new Exception("Product category not found");
-                    }
-
-                    var product = await dbContext.Products.
-                        Where(x => x.Id == id).ExecuteUpdateAsync(setters => setters.
-                            SetProperty(x => x.Name, vm.Name)
-                            .SetProperty(x => x.CategoryId, vm.ProductCategoryId)
-                            .SetProperty(x => x.Description, vm.Description)
-                            .SetProperty(x => x.Price, 0)
-                            .SetProperty(x => x.IsAvailable, true)
-                        );
-                    
-                    if (product == null)
-                    {
-                        throw new Exception("Product not found");
-                    }
-
-                    // product.Name = vm.Name;
-                    // product.Category = productCategory;
-                    // product.Description = vm.Description;
-                    // product.Price = 0;
-                    // product.IsAvailable = true;
-
-                    // dbContext.Products.ExecuteUpdate(product);
-                    // await dbContext.SaveChangesAsync();
-
-                    txn.Complete();
-
-                    return RedirectToAction("Index");
+                    return View(vm);
                 }
-                catch (Exception ex)
+
+                var productCategory = await dbContext.ProductCategories.
+                    Where(x => x.Id == vm.ProductCategoryId).FirstOrDefaultAsync();
+
+                if (productCategory == null)
                 {
-                    return BadRequest(ex.Message);
+                    throw new Exception("Product category not found");
                 }
+
+                // var product = await dbContext.Products.
+                //     Where(x => x.Id == id).ExecuteUpdateAsync(setters => setters.
+                //         SetProperty(x => x.Name, vm.Name)
+                //         .SetProperty(x => x.CategoryId, vm.ProductCategoryId)
+                //         .SetProperty(x => x.Description, vm.Description)
+                //         .SetProperty(x => x.Price, 0)
+                //         .SetProperty(x => x.IsAvailable, true)
+                //     );
+
+                // if (product == null)
+                // {
+                //     throw new Exception("Product not found");
+                // }
+
+                var dto = new Dto.ProductDtos.UpdateProductDto();
+                dto.Name = vm.Name;
+                dto.ProductCategory = productCategory;
+                dto.Description = vm.Description;
+
+                await productService.Update(id, dto);
+
+                // product.Name = vm.Name;
+                // product.Category = productCategory;
+                // product.Description = vm.Description;
+                // product.Price = 0;
+                // product.IsAvailable = true;
+
+                // dbContext.Products.ExecuteUpdate(product);
+                // await dbContext.SaveChangesAsync();
+
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
 
         public async Task<IActionResult> Delete(int id)
         {
-            using(var txn = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+            try
             {
-                try
-                {
-                    var product = await dbContext.Products.
-                        Where(x => x.Id == id).ExecuteDeleteAsync();
-
-                    if (product == null)
-                    {
-                        throw new Exception("Product not found");
-                    }
-
-                    // dbContext.Products.Remove(product);
-                    // await dbContext.SaveChangesAsync();
-
-                    txn.Complete();
-
-                    return RedirectToAction("Index");
-                }
-                catch (Exception ex)
-                {
-                    return BadRequest(ex.Message);
-                }
+                // dbContext.Products.Remove(product);
+                // await dbContext.SaveChangesAsync();
+                await productService.Delete(id);
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
     }
