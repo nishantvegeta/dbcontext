@@ -1,4 +1,5 @@
-@model IEnumerable<WebApplication1.Models.Product>
+@using WebApplication1.ViewModels.ProductVms;
+@model ProductVm
 @{
     ViewData["Title"] = "Index";
 }
@@ -27,7 +28,7 @@
                 @Html.DisplayNameFor(model => model.Name)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.Category)
+                @Html.DisplayNameFor(model => model.CategoryId)
             </th>
             <th>
                 @Html.DisplayNameFor(model => model.Description)
@@ -36,7 +37,7 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in Model)
+        @foreach (var item in Model.Products)
         {
             <tr>
                 <td>
