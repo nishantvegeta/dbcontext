@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
 using WebApplication1.Models;
 using WebApplication1.ViewModels.ProductVms;
-using System.Transactions;
+using WebApplication1.Repository.Interfaces;
 
 namespace WebApplication1.Controllers
 {
@@ -13,42 +13,63 @@ namespace WebApplication1.Controllers
     {
         private readonly FirstRunDbContext dbContext;
         private readonly IProductService productService;
+        private readonly IRepository repository;
 
-        public ProductController(FirstRunDbContext dbContext, IProductService productService)
+        public ProductController(FirstRunDbContext dbContext, IProductService productService, IRepository repository)
         {
             this.dbContext = dbContext;
             this.productService = productService;
+            this.repository = repository;
         }
 
-        public async Task<IActionResult> Filter(SearchProductVm vm)
-        {
-            var filteredproducts = await dbContext.Products.
-                Include(x => x.Category).
-                Where(x => x.Name.Contains(vm.Name)).
-                OrderBy(x => x.Name).
-                ToListAsync();
 
-            if (filteredproducts.Count == 0)
+        public async Task<IActionResult> Filter(string name)
+        {
+            var filteredProducts = await repository.SearchProducts(name);
+
+            if (filteredProducts == null || !filteredProducts.Any())
             {
                 ViewBag.Message = "No products found.";
             }
 
-            vm.Products = filteredproducts;
-            return View(vm);
+            return View("Index", filteredProducts);
         }
 
         public async Task<IActionResult> Index()
         {
-            var products = await dbContext.Products.
-                Include(x => x.Category).
-                OrderBy(x => x.Name).
-                ToListAsync();
-
-            ProductVm vm = new ProductVm();
-            vm.Products = products;
-
-            return View(vm);
+            var products = await repository.GetAllProducts();
+            return View(products);
         }
+
+        // public async Task<IActionResult> Filter(SearchProductVm vm)
+        // {
+        //     var filteredproducts = await dbContext.Products.
+        //         Include(x => x.Category).
+        //         Where(x => x.Name.Contains(vm.Name)).
+        //         OrderBy(x => x.Name).
+        //         ToListAsync();
+
+        //     if (filteredproducts.Count == 0)
+        //     {
+        //         ViewBag.Message = "No products found.";
+        //     }
+
+        //     vm.Products = filteredproducts;
+        //     return View(vm);
+        // }
+
+        // public async Task<IActionResult> Index()
+        // {
+        //     var products = await dbContext.Products.
+        //         Include(x => x.Category).
+        //         OrderBy(x => x.Name).
+        //         ToListAsync();
+
+        //     ProductVm vm = new ProductVm();
+        //     vm.Products = products;
+
+        //     return View(vm);
+        // }
 
         public async Task<IActionResult> Create()
         {
@@ -101,6 +122,7 @@ namespace WebApplication1.Controllers
             }
             catch (Exception ex)
             {
+                ModelState.AddModelError("", "An error occurred while creating the product.");
                 return BadRequest(ex.Message);
             }
         }
