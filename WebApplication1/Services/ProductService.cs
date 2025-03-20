@@ -20,6 +20,14 @@ namespace WebApplication1.Services
         public async Task Create(CreateProductDto dto)
         {
             using var txn = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            // Check for duplicates
+            var exists = await dbContext.Products
+                .AnyAsync(x => x.Name == dto.Name);
+
+            if (exists)
+            {
+                throw new Exception("Already Exists");
+            }
             var product = new Product();
             product.Name = dto.Name;
             product.Category = dto.ProductCategory;

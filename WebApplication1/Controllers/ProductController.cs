@@ -101,15 +101,6 @@ namespace WebApplication1.Controllers
                     throw new Exception("Product category not found");
                 }
 
-                // Check for duplicates
-                var exists = await dbContext.Products
-                    .AnyAsync(x => x.Name == vm.Name);
-
-                if (exists)
-                {
-                    return BadRequest("Already Exists");
-                }
-
                 // var product = new Product();
                 // product.Name = vm.Name;
                 // product.Category = productCategory;
